@@ -70,7 +70,7 @@ class JsonView(QtWidgets.QWidget):
         self.tree_widget = QtWidgets.QTreeWidget()
         self.tree_widget.setHeaderLabels(["Key", "Value"])
         self.tree_widget.header().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)#應該是自動調整視窗大小的東西
-        self.tree_widget.setGeometry(QtCore.QRect(320, 310, 256, 192))
+
         root_item = QtWidgets.QTreeWidgetItem(["Root"])
         self.recurse_jdata(jdata, root_item)
         self.tree_widget.addTopLevelItem(root_item)#新增root在樹上
@@ -78,15 +78,17 @@ class JsonView(QtWidgets.QWidget):
         self.savefile_btn = QtWidgets.QPushButton("save file...")
 
         self.filenames = filenames
-        print(self.filenames)
         self.savefile_btn.clicked.connect(self.SaveJson)
+
+        self.restart_btn = QtWidgets.QPushButton("Restart")
+        self.restart_btn.clicked.connect(self.restart)
 
         # Add table to layout
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.tree_widget)
         layout.addWidget(self.textEdit)
-        layout.addWidget(self.savefile_btn)
+
 
         # Group box
 
@@ -95,16 +97,27 @@ class JsonView(QtWidgets.QWidget):
 
         layout2 = QtWidgets.QVBoxLayout()
         layout2.addWidget(gbox)
+        layout2.addWidget(self.savefile_btn)
+        layout2.addWidget(self.restart_btn)
 
         self.setLayout(layout2)
 
+    def restart(self):
+        QtCore.QCoreApplication.quit()
+        status = QtCore.QProcess.startDetached(sys.executable, sys.argv)
+        print(status)
+
 
     def SaveJson(self):
-        filename = self.filenames
-        update = self.textEdit.toPlainText()
-        with open(filename[0], 'w') as f:
-            f.write(update)
-            f.close()
+        try:
+            filename = self.filenames
+            update = self.textEdit.toPlainText()
+            with open(filename[0], 'w') as f:
+                f.write(update)
+                f.close()
+            QtWidgets.QMessageBox.information(self, 'Hint', 'File Saved.', QtWidgets.QMessageBox.Yes)
+        except:
+            QtWidgets.QMessageBox.warning(self, 'Hint', 'Fail.', QtWidgets.QMessageBox.Yes)
 
 
     def recurse_jdata(self, jdata, tree_widget):
@@ -147,7 +160,7 @@ class JsonViewer(QtWidgets.QMainWindow):
 
         self.setCentralWidget(json_view)
         self.setWindowTitle("JSON Viewer")
-        
+        self.setMinimumSize(800, 600)
         self.show()
 
     def keyPressEvent(self, e):
