@@ -32,7 +32,7 @@ class JsonView(QtWidgets.QWidget):
         dlg.setFileMode(QtWidgets.QFileDialog.AnyFile)
         filenames = QStringList()
 
-        if dlg.exec_():#試試看讓他不只能讀json
+        if dlg.exec_():
             filenames = dlg.selectedFiles()
 
             with open(filenames[0], 'r') as f:
@@ -47,7 +47,7 @@ class JsonView(QtWidgets.QWidget):
         #define widgets
         self.savefile_btn = QtWidgets.QPushButton("Save")
         self.filenames = filenames
-        self.savefile_btn.clicked.connect(self.SaveJson)
+        self.savefile_btn.clicked.connect(self.Save_textEdit)
         self.restart_btn = QtWidgets.QPushButton("Restart")
         self.restart_btn.clicked.connect(self.restart)
 
@@ -59,7 +59,6 @@ class JsonView(QtWidgets.QWidget):
         self.recurse_jdata(jdata, root_item)
         self.tree_widget.addTopLevelItem(root_item)#Add root on tree
         selmodel = self.tree_widget.selectionModel()
-
         selmodel.selectionChanged.connect(self.handleSelection)
 
 
@@ -93,16 +92,17 @@ class JsonView(QtWidgets.QWidget):
             item = self.tree_widget.itemFromIndex(index)#item-QTreeWidgetItem, index-QModelIndex
             column = self.tree_widget.currentColumn()
             edit = QtWidgets.QLineEdit()
-            edit.setText(item.text(column))
-            edit.returnPressed.connect(lambda *_: self.setData(edit, item, column, self.tree_widget))
+            if item.text(column):
+                edit.setText(item.text(column))
+                edit.returnPressed.connect(lambda *_: self.setData(edit, item, column, self.tree_widget))
+                self.tree_widget.setItemWidget(item, column, edit)
+            else:
+                return
+            # print('SEL: row: %s, col: %s, text: %s' % (
+            #     index.row(), index.column(), item.text(i)))
 
-            self.tree_widget.setItemWidget(item, column, edit)
-            print('SEL: row: %s, col: %s, text: %s' % (
-                index.row(), index.column(), item.text(i)))
-            # item.setText(int(index.column()), 'test')
 
     def setData(self, data, item, column, tree):
-
         item.setText(int(column), data.text())
         tree.setItemWidget(item, column, None)
 
@@ -110,7 +110,7 @@ class JsonView(QtWidgets.QWidget):
         QtCore.QCoreApplication.quit()
         status = QtCore.QProcess.startDetached(sys.executable, sys.argv)
 
-    def SaveJson(self):
+    def Save_textEdit(self):
         try:
             filename = self.filenames
             update = self.textEdit.toPlainText()
@@ -123,11 +123,9 @@ class JsonView(QtWidgets.QWidget):
 
 
     def recurse_jdata(self, jdata, tree_widget):
-
         if isinstance(jdata, dict): #isinstance用來判斷jdata是否為dict
             for key, val in jdata.items():
                 self.tree_add_row(key, val, tree_widget)
-
         elif isinstance(jdata, list):
             for i, val in enumerate(jdata):
                 key = str(i)
@@ -136,17 +134,13 @@ class JsonView(QtWidgets.QWidget):
             print("This should never be reached!")
 
     def tree_add_row(self, key, val, tree_widget):
-
-        if isinstance(val, dict) or isinstance(val, list):#如果為還能拆解的dict, list 就把key值留下 val再送回去拆解
-
+        if isinstance(val, dict) or isinstance(val, list):#如果為還能拆解的dict, list 就再送回去拆解
             row_item = QtWidgets.QTreeWidgetItem([key])
             self.recurse_jdata(val, row_item)
         else:
-
             row_item = QtWidgets.QTreeWidgetItem([key, str(val)])
 
         tree_widget.addChild(row_item) #add on tree
-
 
 
 class JsonViewer(QtWidgets.QMainWindow):
@@ -160,10 +154,6 @@ class JsonViewer(QtWidgets.QMainWindow):
         self.setWindowTitle("JSON Editor")
         self.setMinimumSize(800, 600)
         self.show()
-
-    def keyPressEvent(self, e):
-        if e.key() == QtCore.Qt.Key_Escape:
-            self.close()
 
 
 if "__main__" == __name__:
