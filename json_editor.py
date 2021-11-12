@@ -72,6 +72,7 @@ class JsonView(QtWidgets.QWidget):
         self.setLayout(layout3)
 
     def OpenFile(self):
+        self.tree_widget.clear()
         dlg = QtWidgets.QFileDialog()
         dlg.setFileMode(QtWidgets.QFileDialog.AnyFile)
         if dlg.exec_():
