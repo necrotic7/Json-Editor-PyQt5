@@ -153,6 +153,8 @@ class JsonView(QtWidgets.QWidget):
             file.write(text)
             file.close()
             QtWidgets.QMessageBox.information(self, 'Hint', 'File Saved.', QtWidgets.QMessageBox.Yes)
+        except FileNotFoundError:
+            QtWidgets.QMessageBox.warning(self, 'Hint', 'Please enter the right path.', QtWidgets.QMessageBox.Yes)
         except json.decoder.JSONDecodeError:
             QtWidgets.QMessageBox.warning(self, 'Hint', 'Not the right json format.', QtWidgets.QMessageBox.Yes)
         except Exception as e:
