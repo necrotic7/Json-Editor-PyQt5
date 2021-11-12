@@ -12,6 +12,8 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 
+import os
+
 
 try:
     from PyQt5.QtCore import QStringList
@@ -29,10 +31,7 @@ class JsonView(QtWidgets.QWidget):
         self.textEdit = QtWidgets.QTextEdit()
         self.TreeEdit = QtWidgets.QTextEdit()
 
-
         filenames = QStringList()
-
-        ##
 
         #define widgets
         self.savefile_btn = QtWidgets.QPushButton("Save")
@@ -42,6 +41,8 @@ class JsonView(QtWidgets.QWidget):
         self.restart_btn.clicked.connect(self.restart)
         self.open_btn = QtWidgets.QPushButton("Open")
         self.open_btn.clicked.connect(self.OpenFile)
+        self.SaveAs_btn = QtWidgets.QPushButton("Save as...")
+        self.SaveAs_btn.clicked.connect(self.Save_as)
 
         # Tree
         self.tree_widget = QtWidgets.QTreeWidget()
@@ -58,9 +59,10 @@ class JsonView(QtWidgets.QWidget):
         self.table_gbox.setLayout(layout)
 
         layout2 = QtWidgets.QHBoxLayout()
-        layout2.addWidget(self.savefile_btn)
-        layout2.addWidget(self.restart_btn)
         layout2.addWidget(self.open_btn)
+        layout2.addWidget(self.savefile_btn)
+        layout2.addWidget(self.SaveAs_btn)
+        layout2.addWidget(self.restart_btn)
         btn_gbox = QtWidgets.QGroupBox()
         btn_gbox.setLayout(layout2)
 
@@ -92,7 +94,6 @@ class JsonView(QtWidgets.QWidget):
                 print(e)
                 QtWidgets.QMessageBox.warning(self, 'Hint', 'Something went wrong.', QtWidgets.QMessageBox.Yes)
 
-
     def TreeClicked(self):
         getSelected = self.tree_widget.selectedItems()
         if getSelected:
@@ -116,7 +117,6 @@ class JsonView(QtWidgets.QWidget):
             # print('SEL: row: %s, col: %s, text: %s' % (
             #     index.row(), index.column(), item.text(i)))
 
-
     def setData(self, data, item, column, tree):
         item.setText(int(column), data.text())
         tree.setItemWidget(item, column, None)
@@ -134,11 +134,30 @@ class JsonView(QtWidgets.QWidget):
                 f.write(update)
                 f.close()
             QtWidgets.QMessageBox.information(self, 'Hint', 'File Saved.', QtWidgets.QMessageBox.Yes)
+        except IndexError:
+            QtWidgets.QMessageBox.warning(self, 'Hint', 'Please press Save as first.', QtWidgets.QMessageBox.Yes)
         except json.decoder.JSONDecodeError:
             QtWidgets.QMessageBox.warning(self, 'Hint', 'Not the right json format.', QtWidgets.QMessageBox.Yes)
         except Exception as e:
             print(e)
             QtWidgets.QMessageBox.warning(self, 'Hint', 'Something went wrong.', QtWidgets.QMessageBox.Yes)
+
+    def Save_as(self):
+        try:
+            text = self.textEdit.toPlainText()
+            data = json.loads(text)
+            name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File')
+            filename = str(name[0])
+            file = open(filename, 'w')
+            file.write(text)
+            file.close()
+            QtWidgets.QMessageBox.information(self, 'Hint', 'File Saved.', QtWidgets.QMessageBox.Yes)
+        except json.decoder.JSONDecodeError:
+            QtWidgets.QMessageBox.warning(self, 'Hint', 'Not the right json format.', QtWidgets.QMessageBox.Yes)
+        except Exception as e:
+            print(e)
+            QtWidgets.QMessageBox.warning(self, 'Hint', 'Something went wrong.', QtWidgets.QMessageBox.Yes)
+
 
 
     def recurse_jdata(self, jdata, tree_widget):
