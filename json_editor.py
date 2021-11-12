@@ -27,22 +27,12 @@ class JsonView(QtWidgets.QWidget):
         #Load file
         self.tree_widget = None
         self.textEdit = QtWidgets.QTextEdit()
+        self.TreeEdit = QtWidgets.QTextEdit()
 
-        dlg = QtWidgets.QFileDialog()
-        dlg.setFileMode(QtWidgets.QFileDialog.AnyFile)
+
         filenames = QStringList()
 
-        if dlg.exec_():
-            filenames = dlg.selectedFiles()
-
-            with open(filenames[0], 'r') as f:
-                data = json.load(f)
-
-            data1 = json.dumps(data, indent=5)
-            self.textEdit.setText(data1)
-
-        jfile = open(filenames[0])
-        jdata = json.load(jfile, object_pairs_hook=collections.OrderedDict)##
+        ##
 
         #define widgets
         self.savefile_btn = QtWidgets.QPushButton("Save")
@@ -50,14 +40,14 @@ class JsonView(QtWidgets.QWidget):
         self.savefile_btn.clicked.connect(self.Save_textEdit)
         self.restart_btn = QtWidgets.QPushButton("Restart")
         self.restart_btn.clicked.connect(self.restart)
+        self.open_btn = QtWidgets.QPushButton("Open")
+        self.open_btn.clicked.connect(self.OpenFile)
 
         # Tree
         self.tree_widget = QtWidgets.QTreeWidget()
         self.tree_widget.setHeaderLabels(["Key", "Value"])
         self.tree_widget.header().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)##
-        root_item = QtWidgets.QTreeWidgetItem(["Root"])
-        self.recurse_jdata(jdata, root_item)
-        self.tree_widget.addTopLevelItem(root_item)#Add root on tree
+        #Add root on tree
         selmodel = self.tree_widget.selectionModel()
         selmodel.selectionChanged.connect(self.handleSelection)
 
@@ -66,12 +56,13 @@ class JsonView(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.tree_widget)
         layout.addWidget(self.textEdit)
-        table_gbox = QtWidgets.QGroupBox(filenames[0])
+        table_gbox = QtWidgets.QGroupBox("filenames")
         table_gbox.setLayout(layout)
 
         layout2 = QtWidgets.QHBoxLayout()
         layout2.addWidget(self.savefile_btn)
         layout2.addWidget(self.restart_btn)
+        layout2.addWidget(self.open_btn)
         btn_gbox = QtWidgets.QGroupBox()
         btn_gbox.setLayout(layout2)
 
@@ -80,6 +71,25 @@ class JsonView(QtWidgets.QWidget):
         layout3.addWidget(btn_gbox)
         self.setLayout(layout3)
 
+    def OpenFile(self):
+        dlg = QtWidgets.QFileDialog()
+        dlg.setFileMode(QtWidgets.QFileDialog.AnyFile)
+        if dlg.exec_():
+            filenames = dlg.selectedFiles()
+            self.filenames = dlg.selectedFiles()
+
+            with open(filenames[0], 'r') as f:
+                data = json.load(f)
+
+            data1 = json.dumps(data, indent=5)
+            self.textEdit.setText(data1)
+
+        jfile = open(filenames[0])
+        jdata = json.load(jfile, object_pairs_hook=collections.OrderedDict)
+        root_item = QtWidgets.QTreeWidgetItem(["Root"])
+        self.recurse_jdata(jdata, root_item)
+        self.tree_widget.addTopLevelItem(root_item)
+
     def TreeClicked(self):
         getSelected = self.tree_widget.selectedItems()
         if getSelected:
@@ -87,11 +97,13 @@ class JsonView(QtWidgets.QWidget):
             getChildNode = baseNode.text(1)
             print(getChildNode)
 
+
     def handleSelection(self, selected, deselected):
         for i, index in enumerate(selected.indexes()):
             item = self.tree_widget.itemFromIndex(index)#item-QTreeWidgetItem, index-QModelIndex
             column = self.tree_widget.currentColumn()
             edit = QtWidgets.QLineEdit()
+
             if item.text(column):
                 edit.setText(item.text(column))
                 edit.returnPressed.connect(lambda *_: self.setData(edit, item, column, self.tree_widget))
@@ -139,8 +151,34 @@ class JsonView(QtWidgets.QWidget):
             self.recurse_jdata(val, row_item)
         else:
             row_item = QtWidgets.QTreeWidgetItem([key, str(val)])
+        tree_widget.addChild(row_item)#add on tree
 
-        tree_widget.addChild(row_item) #add on tree
+
+
+    def get_subtree_nodes(self, tree_widget_item):
+        """Returns all QTreeWidgetItems in the subtree rooted at the given node."""
+        nodes = []
+
+        nodes.append(tree_widget_item)
+        for i in range(tree_widget_item.childCount()):
+            nodes.extend(self.get_subtree_nodes(tree_widget_item.child(i)))
+            j = 0
+            while nodes[i].text(j):
+                print('i:', i, ', j:', j)
+                print(nodes[i].text(j))
+                j+=1
+
+
+        return nodes
+
+    # def get_all_items(self):
+    #     """Returns all QTreeWidgetItems in the given QTreeWidget."""
+    #     all_items = []
+    #     for i in range(self.tree_widget.topLevelItemCount()):
+    #         top_item = self.tree_widget.topLevelItem(i)
+    #         all_items.extend(self.get_subtree_nodes(top_item))
+    #
+    #     return all_items
 
 
 class JsonViewer(QtWidgets.QMainWindow):
