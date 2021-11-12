@@ -54,8 +54,8 @@ class JsonView(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.tree_widget)
         layout.addWidget(self.textEdit)
-        table_gbox = QtWidgets.QGroupBox("filenames")
-        table_gbox.setLayout(layout)
+        self.table_gbox = QtWidgets.QGroupBox("filenames")
+        self.table_gbox.setLayout(layout)
 
         layout2 = QtWidgets.QHBoxLayout()
         layout2.addWidget(self.savefile_btn)
@@ -65,7 +65,7 @@ class JsonView(QtWidgets.QWidget):
         btn_gbox.setLayout(layout2)
 
         layout3 = QtWidgets.QVBoxLayout()
-        layout3.addWidget(table_gbox)
+        layout3.addWidget(self.table_gbox)
         layout3.addWidget(btn_gbox)
         self.setLayout(layout3)
 
@@ -78,19 +78,20 @@ class JsonView(QtWidgets.QWidget):
             try:
                 with open(filenames[0], 'r') as f:
                     data = json.load(f)
-
                 data1 = json.dumps(data, indent=5)
                 self.textEdit.setText(data1)
-            except:
+                jfile = open(filenames[0])
+                jdata = json.load(jfile, object_pairs_hook=collections.OrderedDict)
+                root_item = QtWidgets.QTreeWidgetItem(["Root"])
+                self.recurse_jdata(jdata, root_item)
+                self.tree_widget.addTopLevelItem(root_item)
+                self.table_gbox.setTitle(filenames[0])
+            except json.decoder.JSONDecodeError:
                 QtWidgets.QMessageBox.warning(self, 'Hint', 'This is not a json file.', QtWidgets.QMessageBox.Yes)
-        # try:
-        #     jfile = open(filenames[0])
-        #     jdata = json.load(jfile, object_pairs_hook=collections.OrderedDict)
-        # except:
-        #     pass
-        # root_item = QtWidgets.QTreeWidgetItem(["Root"])
-        # self.recurse_jdata(jdata, root_item)
-        # self.tree_widget.addTopLevelItem(root_item)
+            except Exception as e:
+                print(e)
+                QtWidgets.QMessageBox.warning(self, 'Hint', 'Something went wrong.', QtWidgets.QMessageBox.Yes)
+
 
     def TreeClicked(self):
         getSelected = self.tree_widget.selectedItems()
@@ -134,7 +135,7 @@ class JsonView(QtWidgets.QWidget):
                 f.close()
             QtWidgets.QMessageBox.information(self, 'Hint', 'File Saved.', QtWidgets.QMessageBox.Yes)
         except json.decoder.JSONDecodeError:
-            QtWidgets.QMessageBox.warning(self, 'Hint', 'Not the right format.', QtWidgets.QMessageBox.Yes)
+            QtWidgets.QMessageBox.warning(self, 'Hint', 'Not the right json format.', QtWidgets.QMessageBox.Yes)
         except Exception as e:
             print(e)
             QtWidgets.QMessageBox.warning(self, 'Hint', 'Something went wrong.', QtWidgets.QMessageBox.Yes)
