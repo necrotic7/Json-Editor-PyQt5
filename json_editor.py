@@ -47,10 +47,8 @@ class JsonView(QtWidgets.QWidget):
         self.tree_widget = QtWidgets.QTreeWidget()
         self.tree_widget.setHeaderLabels(["Key", "Value"])
         self.tree_widget.header().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)##
-        #Add root on tree
         selmodel = self.tree_widget.selectionModel()
         selmodel.selectionChanged.connect(self.handleSelection)
-
 
         #add widgets to layout
         layout = QtWidgets.QHBoxLayout()
@@ -77,18 +75,22 @@ class JsonView(QtWidgets.QWidget):
         if dlg.exec_():
             filenames = dlg.selectedFiles()
             self.filenames = dlg.selectedFiles()
+            try:
+                with open(filenames[0], 'r') as f:
+                    data = json.load(f)
 
-            with open(filenames[0], 'r') as f:
-                data = json.load(f)
-
-            data1 = json.dumps(data, indent=5)
-            self.textEdit.setText(data1)
-
-        jfile = open(filenames[0])
-        jdata = json.load(jfile, object_pairs_hook=collections.OrderedDict)
-        root_item = QtWidgets.QTreeWidgetItem(["Root"])
-        self.recurse_jdata(jdata, root_item)
-        self.tree_widget.addTopLevelItem(root_item)
+                data1 = json.dumps(data, indent=5)
+                self.textEdit.setText(data1)
+            except:
+                QtWidgets.QMessageBox.warning(self, 'Hint', 'This is not a json file.', QtWidgets.QMessageBox.Yes)
+        # try:
+        #     jfile = open(filenames[0])
+        #     jdata = json.load(jfile, object_pairs_hook=collections.OrderedDict)
+        # except:
+        #     pass
+        # root_item = QtWidgets.QTreeWidgetItem(["Root"])
+        # self.recurse_jdata(jdata, root_item)
+        # self.tree_widget.addTopLevelItem(root_item)
 
     def TreeClicked(self):
         getSelected = self.tree_widget.selectedItems()
@@ -123,15 +125,19 @@ class JsonView(QtWidgets.QWidget):
         status = QtCore.QProcess.startDetached(sys.executable, sys.argv)
 
     def Save_textEdit(self):
+        filename = self.filenames
+        update = self.textEdit.toPlainText()
         try:
-            filename = self.filenames
-            update = self.textEdit.toPlainText()
+            data = json.loads(update)
             with open(filename[0], 'w') as f:
                 f.write(update)
                 f.close()
             QtWidgets.QMessageBox.information(self, 'Hint', 'File Saved.', QtWidgets.QMessageBox.Yes)
-        except:
-            QtWidgets.QMessageBox.warning(self, 'Hint', 'Fail.', QtWidgets.QMessageBox.Yes)
+        except json.decoder.JSONDecodeError:
+            QtWidgets.QMessageBox.warning(self, 'Hint', 'Not the right format.', QtWidgets.QMessageBox.Yes)
+        except Exception as e:
+            print(e)
+            QtWidgets.QMessageBox.warning(self, 'Hint', 'Something went wrong.', QtWidgets.QMessageBox.Yes)
 
 
     def recurse_jdata(self, jdata, tree_widget):
