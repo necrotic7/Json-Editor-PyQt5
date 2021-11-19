@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 
 # Std
 import argparse
@@ -11,9 +9,6 @@ import sys
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-
-import os
-
 
 try:
     from PyQt5.QtCore import QStringList
@@ -43,6 +38,13 @@ class JsonView(QtWidgets.QWidget):
         self.open_btn.clicked.connect(self.OpenFile)
         self.SaveAs_btn = QtWidgets.QPushButton("Save as...")
         self.SaveAs_btn.clicked.connect(self.Save_as)
+        self.getAll_btn = QtWidgets.QPushButton("get all")
+        self.getAll_btn.clicked.connect(self.replace)
+        self.find_lineEdit = QtWidgets.QLineEdit()
+        self.find_btn = QtWidgets.QPushButton("find")
+        self.find_btn.clicked.connect(self.find_word)
+
+        self.flags = QtGui.QTextDocument.FindFlags()
 
         # Tree
         self.tree_widget = QtWidgets.QTreeWidget()
@@ -63,12 +65,15 @@ class JsonView(QtWidgets.QWidget):
         layout2.addWidget(self.savefile_btn)
         layout2.addWidget(self.SaveAs_btn)
         layout2.addWidget(self.restart_btn)
+        layout2.addWidget(self.getAll_btn)
         btn_gbox = QtWidgets.QGroupBox()
         btn_gbox.setLayout(layout2)
 
         layout3 = QtWidgets.QVBoxLayout()
         layout3.addWidget(self.table_gbox)
         layout3.addWidget(btn_gbox)
+        layout3.addWidget(self.find_lineEdit)
+        layout3.addWidget(self.find_btn)
         self.setLayout(layout3)
 
     def OpenFile(self):
@@ -82,7 +87,7 @@ class JsonView(QtWidgets.QWidget):
                 with open(filenames[0], 'r') as f:
                     data = json.load(f)
                 data1 = json.dumps(data, indent=5)
-                self.textEdit.setText(data1)
+                # self.textEdit.setText(data1)
                 jfile = open(filenames[0])
                 jdata = json.load(jfile, object_pairs_hook=collections.OrderedDict)
                 root_item = QtWidgets.QTreeWidgetItem(["Root"])
@@ -95,32 +100,48 @@ class JsonView(QtWidgets.QWidget):
                 print(e)
                 QtWidgets.QMessageBox.warning(self, 'Hint', 'Something went wrong.', QtWidgets.QMessageBox.Yes)
 
-    def TreeClicked(self):
-        getSelected = self.tree_widget.selectedItems()
-        if getSelected:
-            baseNode = getSelected[0]
-            getChildNode = baseNode.text(1)
-            print(getChildNode)
-
 
     def handleSelection(self, selected, deselected):
         for i, index in enumerate(selected.indexes()):
+            
             item = self.tree_widget.itemFromIndex(index)#item-QTreeWidgetItem, index-QModelIndex
+            
             column = self.tree_widget.currentColumn()
+            
             edit = QtWidgets.QLineEdit()
-
+            
+            #i=0為key, i=1為value
+            # print('i:', i, item.text(i))
             if item.text(column):
-                edit.setText(item.text(column))
-                edit.returnPressed.connect(lambda *_: self.setData(edit, item, column, self.tree_widget))
+                old = item.text(column)
+                edit.setText(old)
+                edit.returnPressed.connect(lambda *_: self.setData(edit, item, column, self.tree_widget, old))
                 self.tree_widget.setItemWidget(item, column, edit)
+                
             else:
                 return
             # print('SEL: row: %s, col: %s, text: %s' % (
             #     index.row(), index.column(), item.text(i)))
 
-    def setData(self, data, item, column, tree):
-        item.setText(int(column), data.text())
+    def setData(self, edit, item, column, tree, old):
+        item.setText(int(column), edit.text())
+        key = item.text(0)
+        print('key:', key)
         tree.setItemWidget(item, column, None)
+        if item.parent():
+            self.replace(item.parent().text(0), old, edit.text(), key)
+
+    def replace(self, parent, old, new, key):
+        filenames = self.filenames
+        print('parent:', parent, old, new)
+        with open(filenames[0]) as f:
+            data = json.load(f)
+            content = data['config_set'][int(parent)]
+            #AI_features以外的可以改！！
+            content[str(key)] = str(new)
+            data1 = json.dumps(data, indent=5)
+            self.textEdit.setText(data1)
+            
 
     def restart(self):
         QtCore.QCoreApplication.quit()
@@ -161,8 +182,6 @@ class JsonView(QtWidgets.QWidget):
             print(e)
             QtWidgets.QMessageBox.warning(self, 'Hint', 'Something went wrong.', QtWidgets.QMessageBox.Yes)
 
-
-
     def recurse_jdata(self, jdata, tree_widget):
         if isinstance(jdata, dict): #isinstance用來判斷jdata是否為dict
             for key, val in jdata.items():
@@ -181,33 +200,58 @@ class JsonView(QtWidgets.QWidget):
         else:
             row_item = QtWidgets.QTreeWidgetItem([key, str(val)])
         tree_widget.addChild(row_item)#add on tree
+                
+
+        # with open('new_data.json', 'w') as f:
+        #     json.dump(data, f)
 
 
+    def find_word(self):
+        words = self.find_lineEdit.text()
+        doc = self.textEdit.document()
+        
+            # no match found, move the cursor to the beginning of the
+            # document and start the search once again
+        cursor = self.textEdit.textCursor()
+        cursor.beginEditBlock()
+        self.textEdit.setTextCursor(cursor)
+        r = self.textEdit.find(words)
+    
+        if r:
+            if cursor.hasSelection():
+                cursor.insertText('test')
+        else:
+            print('no more')
+
+        cursor.endEditBlock()
 
     def get_subtree_nodes(self, tree_widget_item):
         """Returns all QTreeWidgetItems in the subtree rooted at the given node."""
         nodes = []
 
         nodes.append(tree_widget_item)
+        print('childcount:', tree_widget_item.childCount())
         for i in range(tree_widget_item.childCount()):
             nodes.extend(self.get_subtree_nodes(tree_widget_item.child(i)))
             j = 0
             while nodes[i].text(j):
-                print('i:', i, ', j:', j)
-                print(nodes[i].text(j))
+                # print('i:', i, ', j:', j)
+                # print('text:', nodes[i].text(j))
                 j+=1
-
 
         return nodes
 
-    # def get_all_items(self):
-    #     """Returns all QTreeWidgetItems in the given QTreeWidget."""
-    #     all_items = []
-    #     for i in range(self.tree_widget.topLevelItemCount()):
-    #         top_item = self.tree_widget.topLevelItem(i)
-    #         all_items.extend(self.get_subtree_nodes(top_item))
-    #
-    #     return all_items
+    def get_all_items(self):
+        """Returns all QTreeWidgetItems in the given QTreeWidget."""
+        all_items = []
+        for i in range(self.tree_widget.topLevelItemCount()):
+            print('執行第', i, '次')
+            top_item = self.tree_widget.topLevelItem(i)
+            
+            
+            all_items.extend(self.get_subtree_nodes(top_item))
+        
+        return 
 
 
 class JsonViewer(QtWidgets.QMainWindow):
@@ -227,7 +271,3 @@ if "__main__" == __name__:
     qt_app = QtWidgets.QApplication(sys.argv)
     json_viewer = JsonViewer()
     sys.exit(qt_app.exec_())
-
-
-
-
