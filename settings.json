@@ -1,0 +1,58 @@
+{
+    "CAN_DELETE": [
+        "說明：該key可被刪除",
+        "ROI",
+        "target_api",
+        "target_email"
+    ],
+    "CAN_DELETE_CHILD": [
+        "說明：該key底下的子可被刪除",
+        "config_set",
+        "ROI",
+        "Min_Size"
+    ],
+    "CANNOT_EDIT_VALUE": [
+        "說明：該key值的value值不可作更動",
+        "Root",
+        "config_set",
+        "ROI",
+        "AI_features",
+        "HD",
+        "PC",
+        "ROIObj",
+        "Threshold",
+        "Min_Size",
+        "FA",
+        "BodySKTracker"
+    ],
+    "VALID_KEYS": [
+        "說明：有效key值 預設包含config_set, AI_F, ROIObj, CANNOT_EDIT_VALUE",
+        "switch"
+    ],
+    "CONFIG_SET_KEYS": [
+        "說明：config_set底下允許新增的key",
+        "target_api",
+        "target_email",
+        "dps",
+        "task_name",
+        "stream_src",
+        "task_display_name"
+    ],
+    "AI_FEATURES_SETS":[
+        "說明：AI_features底下允許設定的屬性",
+        "HD",
+        "PC",
+        "FA",
+        "BodySKTracker"
+    ],
+    "AI_FEATURES_KEYS": [
+        "說明：AI_features底下允許新增的key",
+        "ResultType",
+        "GPU_Index"
+    ],
+    "ROIOBJ_KEYS": [
+        "說明：ROIObj底下允許新增的key",
+        "ROIID",
+        "ROIName"
+    ]
+}

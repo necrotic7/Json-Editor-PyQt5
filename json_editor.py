@@ -52,7 +52,7 @@ class JsonView(QtWidgets.QWidget):
         self.tree_widget.header().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)##
         selmodel = self.tree_widget.selectionModel()
         selmodel.selectionChanged.connect(self.handleSelection)
-
+        
         #add widgets to layout
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.tree_widget)
@@ -94,6 +94,7 @@ class JsonView(QtWidgets.QWidget):
                 self.recurse_jdata(jdata, root_item)
                 self.tree_widget.addTopLevelItem(root_item)
                 self.table_gbox.setTitle(filenames[0])
+                
             except json.decoder.JSONDecodeError:
                 QtWidgets.QMessageBox.warning(self, 'Hint', 'This is not a json file.', QtWidgets.QMessageBox.Yes)
             except Exception as e:
@@ -129,20 +130,92 @@ class JsonView(QtWidgets.QWidget):
         print('key:', key)
         tree.setItemWidget(item, column, None)
         if item.parent():
-            self.replace(item.parent().text(0), old, edit.text(), key)
+            self.replace(item, old, edit.text(), key)
 
-    def replace(self, parent, old, new, key):
+    def replace(self, item, old, new, key):
+        print('replace:')
         filenames = self.filenames
-        print('parent:', parent, old, new)
+        parent = item.parent()
+        print('parent:', parent.text(0), old, new)
         with open(filenames[0]) as f:
             data = json.load(f)
-            content = data['config_set'][int(parent)]
-            #AI_features以外的可以改！！
-            content[str(key)] = str(new)
-            data1 = json.dumps(data, indent=5)
-            self.textEdit.setText(data1)
-            
+            for attempt in range(10):#嘗試10次
+                try:#不斷往上抓parent直到抓到config_set
+                    print('try-1:', parent.text(0))
+                    content = data['config_set'][int(parent.text(0))]
+                    print(content)
+                    try:
+                        if content[str(key)]:#AI_features以外的可以改
+                            content[str(key)] = str(new)
+                            data1 = json.dumps(data, indent=5)
+                            self.textEdit.setText(data1)
+                    except:#拆到AI_F底下第一層(HD, PC...)
+                        AI_F = content['AI_features']
+                        try:
+                            if AI_F[str(key)]:
+                                AI_F[str(key)] = str(new)
+                                data1 = json.dumps(data, indent=5)
+                                self.textEdit.setText(data1)
+                        except:
+                            print('to func')
+                            self.AI_F_C(AI_F, item,item, old, new, key, data)
+                    break
+                except ValueError:
+                    parent = parent.parent()
+                    continue
+            else:
+                print('error')
+                
+    def AI_F_C(self, AI_F, item,item1, old, new, key, data):
+        print('AI_F_C:')
+        parent = item1.parent()
+        try:#試著抓到正確的AI_Content
+            print('try-2:', str(parent.text(0)))
+            AI_F_C = AI_F[str(parent.text(0))]
+            print(AI_F_C)
+            try:#試著把資料塞進去
+                if AI_F_C[str(key)] is not None:
+                    AI_F_C[str(key)] = str(new)
+                    data1 = json.dumps(data, indent=5)
+                    self.textEdit.setText(data1)
+                    print('done-2')
+            except:
+                self.AI_F_C_C(AI_F_C, item,item, old, new, key, data)
+        except:
+            print('fail-2')
+            self.AI_F_C(AI_F,item, item1.parent(), old, new, key, data)
 
+        
+    def AI_F_C_C(self, AI_F_C,item, item1, old, new, key, data):
+        print('AI_F_C_C:')
+        parent = item1.parent()
+        try:
+            print('try-3:', str(parent.text(0)))
+            AI_F_C_C = AI_F_C[str(parent.text(0))]
+            print(AI_F_C_C)
+            
+            try:#試著把資料塞進去
+                try:
+                    if AI_F_C_C[str(key)] is not None:
+                        AI_F_C_C[str(key)] = str(new)
+                        data1 = json.dumps(data, indent=5)
+                        self.textEdit.setText(data1)
+                        print('done3-1')
+                except Exception as e:
+                    test = AI_F_C_C[int(item.parent().text(0))]
+                    test[str(key)] = str(new)
+                    data1 = json.dumps(data, indent=5)
+                    self.textEdit.setText(data1)
+                    print('done3-2')
+            except Exception as e:
+                print(e)
+                print('fail-3-1')
+                self.AI_F_C_C(AI_F_C_C,item, item1.parent(), old, new, key, data)
+        except:
+            print('fail-3-2')
+            self.AI_F_C_C(AI_F_C,item, item1.parent(), old, new, key, data)
+
+        
     def restart(self):
         QtCore.QCoreApplication.quit()
         status = QtCore.QProcess.startDetached(sys.executable, sys.argv)
